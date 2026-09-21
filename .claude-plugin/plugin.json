@@ -8,5 +8,6 @@
   },
   "homepage": "https://www.networksolutions.com/",
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./.mcp.json",
+  "license": "Apache-2.0"
 }
