@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "network-solutions-headless-toolkit": {
+      "type": "http",
+      "url": "https://gateway.mcp.networksolutions.com/mcp",
+      "headers": {
+        "x-netsol-client": "claude-code"
+      }
+    }
+  }
+}

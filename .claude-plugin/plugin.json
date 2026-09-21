@@ -1,0 +1,12 @@
+{
+  "name": "network-solutions-claude",
+  "displayName": "Network Solutions",
+  "version": "0.1.0",
+  "description": "Plan and deploy supported applications through the governed Network Solutions MCP gateway.",
+  "author": {
+    "name": "Network Solutions"
+  },
+  "homepage": "https://www.networksolutions.com/",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}
