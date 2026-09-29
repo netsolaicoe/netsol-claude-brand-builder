@@ -2,7 +2,7 @@
 
 A Claude Code plugin for developing a business brand with Network Solutions. It turns a business idea into a name, matching domain options, logo concepts, and website layouts, then lets you refine and save those choices before continuing in Network Solutions.
 
-The plugin contains a [Brand Creator skill](skills/network-solutions-business-toolkit/SKILL.md) and connects Claude Code to the Network Solutions MCP gateway. Domain availability and pricing come from the gateway. Previews and saved choices stay drafts until you continue in Network Solutions.
+The plugin contains a [Brand Creator skill](skills/network-solutions-business-toolkit/SKILL.md), hosting skills for planning, deploying, diagnosing, and rolling back an application, and a connection to the Network Solutions MCP gateway. Domain availability and pricing come from the gateway. Previews and saved choices stay drafts until you continue in Network Solutions.
 
 ## Features
 
@@ -48,7 +48,12 @@ Reply in plain language to choose or refine the options Claude shows. Saving a l
 | Path | Purpose |
 | --- | --- |
 | [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) | Plugin metadata and component paths |
-| [`skills/network-solutions-business-toolkit/SKILL.md`](skills/network-solutions-business-toolkit/SKILL.md) | ₹Conversation guidance and supported brand workflows |
+| [`skills/network-solutions-business-toolkit/SKILL.md`](skills/network-solutions-business-toolkit/SKILL.md) | Conversation guidance and supported brand workflows |
+| [`skills/hosting-help/SKILL.md`](skills/hosting-help/SKILL.md) | Read-only answers about Network Solutions hosting |
+| [`skills/app-detect-and-plan/SKILL.md`](skills/app-detect-and-plan/SKILL.md) | Detect an app runtime and produce a hosting plan |
+| [`skills/deploy-to-network-solutions/SKILL.md`](skills/deploy-to-network-solutions/SKILL.md) | Deploy a repository to Network Solutions |
+| [`skills/diagnose-and-recover-deployment/SKILL.md`](skills/diagnose-and-recover-deployment/SKILL.md) | Investigate a deployment and recover it with consent |
+| [`skills/rollback-deployment/SKILL.md`](skills/rollback-deployment/SKILL.md) | Restore a prior known-good release |
 | [`.mcp.json`](.mcp.json) | Network Solutions MCP gateway connection |
 
 ## License
