@@ -1,5 +1,5 @@
 {
-  "name": "network-solutions-claude",
+  "name": "network-solutions",
   "displayName": "Network Solutions",
   "version": "0.2.0",
   "description": "Plan and deploy supported applications through the governed Network Solutions MCP gateway.",
@@ -7,6 +7,7 @@
     "name": "Network Solutions"
   },
   "homepage": "https://www.networksolutions.com/",
+  "icon": "./assets/icon.png",
   "privacyPolicyUrl": "https://www.newfold.com/privacy-center",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
