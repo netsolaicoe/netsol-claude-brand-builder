@@ -32,7 +32,7 @@ Domain purchases, hosting purchases, and brand checkout happen on the Network So
 
 ## MCP server
 
-The plugin connects to the public Network Solutions MCP server, `network-solutions`, set in [`.mcp.json`](.mcp.json). It provides brand building, domain search, and hosting plans without sign-in. There is no API key or environment variable to set.
+The plugin connects to the public Network Solutions MCP server, `network-solutions-headless-toolkit`, set in [`.mcp.json`](.mcp.json). It provides brand building, domain search, and hosting plans without sign-in. There is no API key or environment variable to set.
 
 Deploys, diagnosis, and rollbacks use the Network Solutions CLI, which handles your account sign-in with `netsol login`.
 

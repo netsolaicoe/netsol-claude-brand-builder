@@ -50,7 +50,7 @@ Reach canonical capabilities in this **availability order**:
    project has Network Solutions state.
 2. **MCP deployment tools** — only when this session actually lists the tools
    this Skill names for the MCP path (for example `deployment_get_status`). The
-   plugin's bundled `network-solutions` server does not provide them, so without
+   plugin's bundled `network-solutions-headless-toolkit` server does not provide them, so without
    the CLI this path is usually unavailable.
 3. **Trusted Network Solutions hosted continuation** when no local execution is
    available.

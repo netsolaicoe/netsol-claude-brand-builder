@@ -43,7 +43,7 @@ response (`data.runtimes[].runtime`).
 
 Reach canonical planning tools in this **availability order**:
 
-1. **Configured `network-solutions` MCP connection** (public gateway tools).
+1. **Configured `network-solutions-headless-toolkit` MCP connection** (public gateway tools).
 2. **`netsol-cli`** (≥0.2.0) when installed and compatible.
 3. **Trusted Network Solutions hosted continuation** when offered to the user.
 
@@ -263,7 +263,7 @@ manually when this command succeeds.
 
 ## Path B — Fallback: MCP tools (CLI unavailable)
 
-Use only these planning tools via the configured `network-solutions` MCP server:
+Use only these planning tools via the configured `network-solutions-headless-toolkit` MCP server:
 
 - `deployment_list_supported_runtimes`
 - `deployment_recommend_plan`

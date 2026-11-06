@@ -140,7 +140,7 @@ in-scope action.
 
 ## Available tools
 
-The configured `network-solutions` MCP connection provides Brand Creator tools.
+The configured `network-solutions-headless-toolkit` MCP connection provides Brand Creator tools.
 These tools are model-callable in this session—never claim a listed tool is
 missing, unavailable, app-only, or “not exposed.”
 
