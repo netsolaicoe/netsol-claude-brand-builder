@@ -416,10 +416,11 @@ netsol target select <target_id> [path] [--application-name <artifact_name>]
      / `checkout_required`), run **`netsol checkout`** from the project root and
      present the purchase action — do **not** treat an empty inventory as a fatal
      error before purchase. Otherwise stop with a concise error.
-   - **Exactly one** ready target → tell the user which `target_id` and application
-     name you are about to bind, ask them to confirm, and wait. On confirmation, run
-     `target select <target_id> . --application-name <artifact_name>`. Sparse OAuth
-     fields (only `target_id` and `status`) are normal.
+   - **Exactly one** ready target → run
+     `target select <target_id> . --application-name <artifact_name>` immediately,
+     then tell the user which `target_id` was bound. The approval prompt shows the
+     target and application name before anything is deployed. Sparse OAuth fields
+     (only `target_id` and `status`) are normal.
    - **Two or more** ready targets → present ready target identifiers as the
      target-choice operational exception (do not show plan, SKU, capacity, OS,
      architecture, or internal fields); **ask** which `target_id` to bind; wait for
