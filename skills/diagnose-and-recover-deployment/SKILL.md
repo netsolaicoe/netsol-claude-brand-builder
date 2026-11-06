@@ -19,7 +19,7 @@ version: 1.3.11
 Use this Skill when the user asks about the status, health, failure, or logs of
 an existing **Network Solutions** deployment, or when a deploy returned a pending
 or unhealthy result. All business calls use canonical Network Solutions tools
-through the configured `network-solutions-deploy` server or `netsol-cli`.
+through `netsol-cli` or, when this session lists them, MCP deployment tools.
 
 This Skill is **read-oriented**. It explains state from safe evidence and
 recommends bounded recovery. It never performs a rollback.
@@ -65,7 +65,7 @@ Run steps in this order unless a prior step already proves the root cause:
 3. **Health** — only explicitly passing is healthy.
 4. **Safe logs** — choose `build`, `runtime`, or `all` from status; paginate
    `build`/`runtime` with `--cursor` (see A3).
-5. **Launch check** — `npx netsol launch check` when available; on `TOOL_NOT_FOUND`,
+5. **Launch check** — `netsol launch check` when available; on `TOOL_NOT_FOUND`,
    disclose and continue with status, health, and log evidence.
 6. **Live URL verify** — HTTP GET on the **public** `live_url`
    (never OAuth). Classify the failure type:
@@ -104,7 +104,7 @@ Run steps in this order unless a prior step already proves the root cause:
 ## Consent-gated recovery
 
 - **Diagnose only (default):** Diagnosis Report + recommendations; **no** file
-  edits, **no** `npx netsol deploy`, **no** hosting config changes.
+  edits, **no** `netsol deploy`, **no** hosting config changes.
 - **Fix and redeploy** (explicit user ask: “fix it”, “fix and redeploy”, “redeploy”):
   may edit app source (`app_code`) or hosting config (`platform_config`) when the
   release failed during build/publish (`deploy_state: failed`) or the root cause is
@@ -131,42 +131,47 @@ You need two things:
 Reach canonical capabilities in this **availability order**:
 
 1. **`netsol-cli`** (>=0.8.0) when local command execution is available.
-2. **Configured `network-solutions-deploy` MCP connection** (public gateway tools).
+2. **MCP deployment tools** — only when this session actually lists the tools
+   this Skill names for the MCP path (for example `deployment_get_status`). The
+   plugin's bundled `network-solutions` server does not provide them, so without
+   the CLI this path is usually unavailable.
 3. **Trusted Network Solutions hosted continuation** when no local execution is
    available.
 
-Check the CLI before relying on it. Do not run a separate Node/npm version preflight before the bootstrap below. If `npm` or `npx` is unavailable, or `npx netsol version` / global CLI install fails because of Node or npm version limits, give Node.js LTS (>= 22.12) install guidance, stop, and wait until the user confirms Node/npm is fixed.
+Check the CLI before relying on it. Do not run a separate Node/npm version preflight before the bootstrap below. If `npm` is unavailable, or `netsol version` / the global CLI install fails because of Node or npm version limits, give Node.js LTS (>= 22.12) install guidance, stop, and wait until the user confirms Node/npm is fixed.
 
-**CLI bootstrap (strict order):** Run each step as a **separate** shell command — do not chain the version probe with repository scans, `command -v`, bare `netsol version`, or install.
+**CLI bootstrap (strict order):** Run each step as a **separate** shell command — do not chain the version probe with repository scans or install.
 
 1. Probe first:
 
 ```bash
-npx netsol version
+netsol version
 ```
 
-2. **Only if** step 1 fails because the CLI is not installed, install globally, then retry:
+2. **Only if** step 1 fails because `netsol` is not found, the CLI is not installed. Ask the user whether to install it globally from the official `@network-solutions/cli` package (or let them install it themselves). Only after they agree, run:
 
 ```bash
 npm i -g @network-solutions/cli
-npx netsol version
+netsol version
 ```
 
 (Alternatively: `pnpm add -g @network-solutions/cli` or `bun add -g @network-solutions/cli` when the user uses those package managers.)
 
-Do **not** run `npm i -g @network-solutions/cli` (or any install) until step 1 has been attempted. Do **not** use `command -v netsol` or bare `netsol version` **instead of** the first `npx netsol version` probe.
+If the user declines, treat the CLI as unavailable and use the next path in the availability order above.
 
-**CLI install anti-patterns:** Do not run `npm install --prefix` to `/tmp`, `/private/tmp`, or any side directory. Do not invoke `node_modules/.bin/netsol` by absolute path. Do not install before the `npx netsol version` probe.
+**Never run `npx netsol`.** The `netsol` command comes from the scoped package `@network-solutions/cli`; when the CLI is not installed, `npx netsol` would download the unrelated unscoped npm package named `netsol`. Always invoke the installed `netsol` command.
 
-Workflow steps in this skill use **`npx netsol …`**.
+**CLI install anti-patterns:** Do not run `npm install --prefix` to `/tmp`, `/private/tmp`, or any side directory. Do not invoke `node_modules/.bin/netsol` by absolute path. Do not install before the `netsol version` probe.
+
+Workflow steps in this skill use **`netsol …`**.
 
 Parse the `cli_version` event and require `data.cli_version` >= `0.8.0`. Older
-CLIs do not have the `npx netsol deployment` / `npx netsol launch` subcommands; treat
+CLIs do not have the `netsol deployment` / `netsol launch` subcommands; treat
 such a CLI as unavailable for those steps and use the MCP read tools instead of
 improvising around it.
 
 If none of the three paths is available, or a required tool is missing, stop and
-tell the user to run `npm i -g @network-solutions/cli`, ensure `netsol` is on PATH, use `npx netsol`, or add the MCP server. Never guess
+tell the user to install the CLI with `npm i -g @network-solutions/cli` (so `netsol` is on PATH). Never guess
 deployment state, and never fall back to raw SSH, arbitrary shell, or a private
 provider endpoint.
 
@@ -179,14 +184,14 @@ are materially safer through the CLI.
 
 | Step | Use | Why |
 | --- | --- | --- |
-| Release-handle resolution from a project directory | **`npx netsol deployment status [path]` only** | The handle lives in `<project>/.networksolutions/netsol.config.json`; the MCP server never reads your filesystem |
-| Status | Either: `npx netsol deployment status [deployment_id\|path]`, or `deployment_get_status` | Read-only and equivalent |
-| Health | Either: `npx netsol deployment health [deployment_id\|path]`, or `deployment_get_health` | Read-only and equivalent |
-| Safe logs | Either: `npx netsol deployment logs [deployment_id\|path] [--limit N] [--phase build\|runtime\|all] [--cursor N]`, or `deployment_get_safe_logs` | Read-only and equivalent; default `phase=all` (single request, no cursor); `build`/`runtime` paginate with `--cursor` (first page `--limit 25 --cursor 0`); CLI clamps limit (max 200) |
-| Launch readiness | `npx netsol launch check [deployment_id\|path]` | Capability-gated; see below |
+| Release-handle resolution from a project directory | **`netsol deployment status [path]` only** | The handle lives in `<project>/.networksolutions/netsol.config.json`; the MCP server never reads your filesystem |
+| Status | Either: `netsol deployment status [deployment_id\|path]`, or `deployment_get_status` | Read-only and equivalent |
+| Health | Either: `netsol deployment health [deployment_id\|path]`, or `deployment_get_health` | Read-only and equivalent |
+| Safe logs | Either: `netsol deployment logs [deployment_id\|path] [--limit N] [--phase build\|runtime\|all] [--cursor N]`, or `deployment_get_safe_logs` | Read-only and equivalent; default `phase=all` (single request, no cursor); `build`/`runtime` paginate with `--cursor` (first page `--limit 25 --cursor 0`); CLI clamps limit (max 200) |
+| Launch readiness | `netsol launch check [deployment_id\|path]` | Capability-gated; see below |
 | Live URL verify | HTTP GET on public `live_url` | Never OAuth; disclose when verification unavailable |
 | Local build triage | `npm run build` or stack equivalent | Only when build failure is suspected |
-| Ambiguous publish recovery | **`npx netsol deploy [path] --approve`** (strongly preferred) | The CLI re-derives the same deterministic idempotency key and resumes an existing pending `deployment_id` instead of publishing again |
+| Ambiguous publish recovery | **`netsol deploy [path] --approve`** (strongly preferred) | The CLI re-derives the same deterministic idempotency key and resumes an existing pending `deployment_id` instead of publishing again |
 | Fix and redeploy | **the deploy-to-network-solutions skill** | Only after explicit user consent to fix |
 | Rollback | **Hand off to the Rollback Skill** | Destructive; needs its own approval bound to `deployment_rollback` |
 
@@ -195,12 +200,11 @@ Without the CLI and without a user-supplied `deployment_id`, ask the user for th
 handle and stop.
 
 `deployment_run_launch_check` is not yet registered by the backend. When
-`npx netsol launch check` stops with `TOOL_NOT_FOUND`, report that readiness checks
+`netsol launch check` stops with `TOOL_NOT_FOUND`, report that readiness checks
 are unavailable — never infer readiness from the tool's absence, and never
 substitute your own readiness verdict.
 
-Never call tools excluded from the compatibility baseline (see
-`netsol-cli/contracts/compatibility/README.md`).
+Call only the Network Solutions tools and commands named in this Skill.
 
 ## Authentication
 
@@ -209,20 +213,20 @@ unnecessary browser login.
 
 ### Path A — CLI (`netsol-cli`)
 
-When the CLI is available, use **`npx netsol login`** only — never MCP server sign-in
+When the CLI is available, use **`netsol login`** only — never MCP server sign-in
 or MCP server authentication for this skill.
 
 1. **Check first, login only if needed**
    ```bash
-   npx netsol whoami
+   netsol whoami
    ```
    - If `whoami` succeeds (`authenticated: true`), continue — do **not** run
-     `npx netsol login` again.
+     `netsol login` again.
    - If exit 2 / `AUTHENTICATION_REQUIRED`, run login.
 
 2. **Login when required**
    ```bash
-   npx netsol login
+   netsol login
    ```
    - Emits `awaiting_user` with `data.verification_uri` (loopback PKCE when device
      grant is unavailable).
@@ -233,37 +237,34 @@ or MCP server authentication for this skill.
      to open in their **system browser** (Safari, Chrome, Firefox).
    - Tell the user: complete Network Solutions sign-in and consent, then reply
      **`continue`** (or **`done`**) in chat when finished.
-   - **Keep `npx netsol login` running** until `authenticated` is emitted — do not
+   - **Keep `netsol login` running** until `authenticated` is emitted — do not
      cancel, re-run login, or treat `pending` as failure.
    - If the user says **continue** before `authenticated` appears, acknowledge
      and keep waiting for the CLI event (do not start a second login).
-   - Re-run `npx netsol whoami` to confirm `customer_id`, `scopes`, and (when
+   - Re-run `netsol whoami` to confirm `customer_id`, `scopes`, and (when
      present) `grant_resources`.
 
 3. **Session persistence**
    - Credentials persist in `~/.netsol/`; access tokens auto-refresh on each CLI
      command.
    - Do **not** re-login for repeated diagnose reads unless
-     `AUTHENTICATION_REQUIRED`, `INVALID_TOKEN`, or the user ran `npx netsol logout`.
+     `AUTHENTICATION_REQUIRED`, `INVALID_TOKEN`, or the user ran `netsol logout`.
    - Never ask for or handle raw passwords/API keys.
 
-4. **Production vs local dev**
-   - Production: `npx netsol login` only (never `--mock`).
-   - `--mock` is contributor-only; the skill must not suggest it for customer
-     workflows.
+4. **Sign-in method** — use `netsol login` only.
 
 ### Path B — MCP tools only
 
-Use only when the CLI is unavailable. If **`netsol version`** (or `npx netsol version`) succeeds, switch to
-Path A with **`npx netsol login`** — do not use MCP server sign-in.
+Use only when the CLI is unavailable. If **`netsol version`** succeeds, switch to
+Path A with **`netsol login`** — do not use MCP server sign-in.
 
 - Auth for MCP read steps comes from the IDE's MCP server connection — not
-  `npx netsol login`.
-- On `AUTHENTICATION_REQUIRED` while CLI is available: run **`npx netsol login`** and
+  `netsol login`.
+- On `AUTHENTICATION_REQUIRED` while CLI is available: run **`netsol login`** and
   retry via CLI — do **not** direct the user to MCP OAuth.
 - When CLI is truly missing and MCP tools return `AUTHENTICATION_REQUIRED`, tell
-  the user to authenticate the `network-solutions` MCP server in client settings,
-  or run `npm i -g @network-solutions/cli` and switch to Path A with `npx netsol`.
+  the user that this path needs the CLI: install it with
+  `npm i -g @network-solutions/cli` and switch to Path A with `netsol`.
 
 ---
 
@@ -275,7 +276,7 @@ human text on stderr only. Never echo secret values.
 ### A1. Resolve the release and read status
 
 ```bash
-npx netsol deployment status [deployment_id|path]
+netsol deployment status [deployment_id|path]
 ```
 
 With no argument the CLI resolves `deployment_id` from the current project's
@@ -289,7 +290,7 @@ handle — ask the user for one and stop.
 ### A2. Read health
 
 ```bash
-npx netsol deployment health [deployment_id|path]
+netsol deployment health [deployment_id|path]
 ```
 
 Treat only an explicitly passing health result as healthy. Pending or failing
@@ -299,11 +300,11 @@ health is never reported as a successful deployment.
 
 ```bash
 # Single-shot overview (no cursor)
-npx netsol deployment logs [deployment_id|path] [--limit N] [--phase all]
+netsol deployment logs [deployment_id|path] [--limit N] [--phase all]
 
 # Paginated build or runtime logs (cursor required)
-npx netsol deployment logs [deployment_id|path] --phase build --limit 25 --cursor 0
-npx netsol deployment logs [deployment_id|path] --phase build --limit 25 --cursor <next_cursor>
+netsol deployment logs [deployment_id|path] --phase build --limit 25 --cursor 0
+netsol deployment logs [deployment_id|path] --phase build --limit 25 --cursor <next_cursor>
 ```
 
 Logs are bounded and already redacted; the limit is clamped to 200. The `phase`
@@ -344,7 +345,7 @@ locally to reproduce. Do **not** suggest disabling Trivy or
 ### A4. Check launch readiness
 
 ```bash
-npx netsol launch check [deployment_id|path]
+netsol launch check [deployment_id|path]
 ```
 
 This is capability-gated. A `TOOL_NOT_FOUND` stop means the backend has not
@@ -406,7 +407,7 @@ Recommend only bounded, reversible actions:
 - **Ambiguous or timed-out publish** — re-run the same command:
 
   ```bash
-  npx netsol deploy [path] --approve
+  netsol deploy [path] --approve
   ```
 
   The CLI derives the idempotency key from the immutable publish arguments, so an
@@ -428,7 +429,7 @@ Recommend only bounded, reversible actions:
 
 ## Path B — Fallback: direct MCP tools (no compatible CLI)
 
-Use the configured `network-solutions-deploy` MCP server. You must already have a
+Use MCP deployment tools only when this session lists them. You must already have a
 `deployment_id` (or a `deployment_plan_id` the user supplied) — you cannot read the
 project's local state from here.
 
@@ -530,7 +531,7 @@ Never present a mock or dry-run result as production readiness.
 - If the user names a different hosting provider, this Skill does not apply.
 - Use HTTP only to verify the **public live URL** — never
   for OAuth login.
-- Do not edit application code, change hosting config, or run `npx netsol deploy`
+- Do not edit application code, change hosting config, or run `netsol deploy`
   without explicit user consent to fix/redeploy.
 - After user-consented fix, hand off to Deploy for full verification — do not
   claim success from diagnose alone, **except** DNS propagation or HTTP 2xx–4xx

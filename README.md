@@ -1,26 +1,40 @@
-# Network Solutions Brand Builder for Claude Code
+# Network Solutions for Claude Code
 
-A Claude Code plugin for developing a business brand with Network Solutions. It turns a business idea into a name, matching domain options, logo concepts, and website layouts, then lets you refine and save those choices before continuing in Network Solutions.
+A Claude Code plugin for Network Solutions. It does two things:
 
-The plugin contains a [Brand Creator skill](skills/network-solutions-business-toolkit/SKILL.md), hosting skills for planning, deploying, diagnosing, and rolling back an application, and a connection to the Network Solutions MCP gateway. Domain availability and pricing come from the gateway. Previews and saved choices stay drafts until you continue in Network Solutions.
+- **Brand building:** turns a business idea into a name, matching domain options, logo concepts, and website layouts, then lets you refine and save those choices before continuing in Network Solutions.
+- **Hosting:** plans, deploys, diagnoses, and rolls back Node.js and FastAPI apps on your Network Solutions hosting, straight from your repository.
 
 ## Features
+
+Brand building:
 
 - Suggest business names from an idea you describe in plain language
 - Search for matching domains, check a specific domain, and show registration pricing
 - Generate logo options and refine a selected logo
 - Generate website layouts, then adjust the color palette, font pairing, imagery, and hero copy
-- Save a chosen domain, logo, or website layout to a draft
-- Offer Continue to Network Solutions after a logo or website layout is saved
+- Save a chosen domain, logo, or website layout to a draft, then continue in Network Solutions when you're ready
 
-Purchasing a domain or publishing a site happens in Network Solutions, after you leave this chat.
+Hosting:
+
+- Detect your app's runtime and recommend a hosting plan (read-only)
+- Deploy your repository to Network Solutions hosting
+- Investigate a failing deployment and recover it
+- Roll back to a previous known-good release
+- Answer how-to questions about Network Solutions hosting
+
+Domain purchases, hosting purchases, and brand checkout happen on the Network Solutions website. Deploys and rollbacks run from Claude Code, and each one waits for your explicit approval. Before a deploy, Claude shows you any Dockerfile it wrote, plus the target and application name.
 
 ## Prerequisites
 
 - [Claude Code](https://code.claude.com/docs/en/plugins) installed
-- Access to the Network Solutions MCP gateway
+- For deploys, diagnosis, and rollbacks: Node.js 22.12 or later and the Network Solutions CLI, installed with `npm i -g @network-solutions/cli`. Claude asks before installing it for you.
 
-The connection is already set in [`.mcp.json`](.mcp.json). It uses the public gateway URL and a static client header, so there is no API key or other environment variable to set. If the gateway asks you to sign in, follow the prompt from Claude Code or your Network Solutions administrator.
+## MCP server
+
+The plugin connects to the public Network Solutions MCP server, `network-solutions`, set in [`.mcp.json`](.mcp.json). It provides brand building, domain search, and hosting plans without sign-in. There is no API key or environment variable to set.
+
+Deploys, diagnosis, and rollbacks use the Network Solutions CLI, which handles your account sign-in with `netsol login`.
 
 ## Installation
 
@@ -40,6 +54,8 @@ In the Claude Code session started above, try prompts such as:
 - “I’m starting a neighborhood bakery. Help me find a name.”
 - “Create a logo and website for Cedar & Crumb, a neighborhood bakery.”
 - “Check whether cedarandcrumb.com is available.”
+- “Deploy this repository to Network Solutions.”
+- “Why is my Network Solutions deployment failing?”
 
 Reply in plain language to choose or refine the options Claude shows. Saving a logo or website layout makes the Continue to Network Solutions action available.
 
@@ -54,7 +70,7 @@ Reply in plain language to choose or refine the options Claude shows. Saving a l
 | [`skills/deploy-to-network-solutions/SKILL.md`](skills/deploy-to-network-solutions/SKILL.md) | Deploy a repository to Network Solutions |
 | [`skills/diagnose-and-recover-deployment/SKILL.md`](skills/diagnose-and-recover-deployment/SKILL.md) | Investigate a deployment and recover it with consent |
 | [`skills/rollback-deployment/SKILL.md`](skills/rollback-deployment/SKILL.md) | Restore a prior known-good release |
-| [`.mcp.json`](.mcp.json) | Network Solutions MCP gateway connection |
+| [`.mcp.json`](.mcp.json) | Network Solutions MCP server connection |
 
 ## License
 

@@ -43,56 +43,55 @@ response (`data.runtimes[].runtime`).
 
 Reach canonical planning tools in this **availability order**:
 
-1. **Configured `network-solutions-deploy` MCP connection** (public gateway tools).
+1. **Configured `network-solutions` MCP connection** (public gateway tools).
 2. **`netsol-cli`** (≥0.2.0) when installed and compatible.
 3. **Trusted Network Solutions hosted continuation** when offered to the user.
 
 If none of the three is available, tell the user how to add the MCP server or
-run `npm i -g @network-solutions/cli` so `netsol` is on PATH and use `npx netsol`, and stop. Never substitute a private endpoint, demo tool,
+install the CLI with `npm i -g @network-solutions/cli` so `netsol` is on PATH, and stop. Never substitute a private endpoint, demo tool,
 or guessed plan.
 
-When the CLI path is intended, do not run a separate Node/npm version preflight before the bootstrap below. If `npm` or `npx` is unavailable, or `npx netsol version` / global CLI install fails because of Node or npm version limits, give Node.js LTS (>= 22.12) install guidance, stop, and wait for user confirmation.
+When the CLI path is intended, do not run a separate Node/npm version preflight before the bootstrap below. If `npm` is unavailable, or `netsol version` / the global CLI install fails because of Node or npm version limits, give Node.js LTS (>= 22.12) install guidance, stop, and wait for user confirmation.
 
-**CLI bootstrap (strict order):** Run each step as a **separate** shell command — do not chain the version probe with repository scans, `command -v`, bare `netsol version`, or install.
+**CLI bootstrap (strict order):** Run each step as a **separate** shell command — do not chain the version probe with repository scans or install.
 
 1. Probe first:
 
 ```bash
-npx netsol version
+netsol version
 ```
 
-2. **Only if** step 1 fails because the CLI is not installed, install globally, then retry:
+2. **Only if** step 1 fails because `netsol` is not found, the CLI is not installed. Ask the user whether to install it globally from the official `@network-solutions/cli` package (or let them install it themselves). Only after they agree, run:
 
 ```bash
 npm i -g @network-solutions/cli
-npx netsol version
+netsol version
 ```
 
 (Alternatively: `pnpm add -g @network-solutions/cli` or `bun add -g @network-solutions/cli` when the user uses those package managers.)
 
-Do **not** run `npm i -g @network-solutions/cli` (or any install) until step 1 has been attempted. Do **not** use `command -v netsol` or bare `netsol version` **instead of** the first `npx netsol version` probe.
+If the user declines, treat the CLI as unavailable and use the next path in the availability order above.
 
-Require `data.cli_version` >= `0.2.0` from the version event.
+**Never run `npx netsol`.** The `netsol` command comes from the scoped package `@network-solutions/cli`; when the CLI is not installed, `npx netsol` would download the unrelated unscoped npm package named `netsol`. Always invoke the installed `netsol` command.
 
-**CLI install anti-patterns:** Do not run `npm install --prefix` to `/tmp`, `/private/tmp`, or any side directory. Do not invoke `node_modules/.bin/netsol` by absolute path. Do not install before the `npx netsol version` probe.
+**CLI install anti-patterns:** Do not run `npm install --prefix` to `/tmp`, `/private/tmp`, or any side directory. Do not invoke `node_modules/.bin/netsol` by absolute path. Do not install before the `netsol version` probe.
 
-Workflow steps in this skill use **`npx netsol …`**.
+Workflow steps in this skill use **`netsol …`**.
 
 Planning does not require MCP OAuth. When the CLI path is intended, do not
-sign in to the MCP server before plan — use **`npx netsol capabilities plan`** after
+sign in to the MCP server before plan — use **`netsol capabilities plan`** after
 catalog match (public plan steps need no login).
 
 ### Use-case routing (when multiple paths are available)
 
 | Use case | Prefer | Why |
 | --- | --- | --- |
-| Full read-only plan | Inspect + catalog match, then `npx netsol capabilities plan [path] --runtime <catalog-id> [--recipe-id <id>]` | Detect first; pass a catalog id; CLI re-validates against the catalog |
+| Full read-only plan | Inspect + catalog match, then `netsol capabilities plan [path] --runtime <catalog-id> [--recipe-id <id>]` | Detect first; pass a catalog id; CLI re-validates against the catalog |
 | MCP available but CLI missing | MCP tools (Path B below) | Detect first; fetch catalog; declare a catalog ID |
 | Both MCP and CLI available | **CLI for planning** after catalog match; MCP only if CLI is missing or fails with "command not found" | CLI re-validates your declaration |
 
-Never call tools excluded from the compatibility baseline (see
-`netsol-cli/contracts/compatibility/README.md`) or any write, purchase, auth,
-deploy, DNS, log, or rollback tool from this Skill.
+Never call any write, purchase, auth, deploy, DNS, log, or rollback tool from
+this Skill.
 
 ---
 
@@ -231,7 +230,7 @@ Complete **inspect → catalog match → single catalog id** before planning.
 Prefer obtaining the catalog so you see `data.runtimes` before declaring:
 
 ```bash
-npx netsol mcp call deployment_list_supported_runtimes
+netsol mcp call deployment_list_supported_runtimes
 ```
 
 (Or call MCP `deployment_list_supported_runtimes` when the CLI path is not used
@@ -241,13 +240,13 @@ Then map freeform findings to a catalog `runtime` id using **Catalog id vs
 freeform**. On **unknown** or **multiple**, stop or ask — do **not** run
 `capabilities plan` yet.
 
-### A1. Plan — `npx netsol capabilities plan [path] --runtime <catalog-id> [--recipe-id <id>]`
+### A1. Plan — `netsol capabilities plan [path] --runtime <catalog-id> [--recipe-id <id>]`
 
 Pass only the **catalog** runtime id from A0. `--recipe-id` is optional; when
 omitted the CLI derives it from the catalog entry.
 
 ```bash
-npx netsol capabilities plan [path] --runtime nodejs --recipe-id nodejs-npm-start
+netsol capabilities plan [path] --runtime nodejs --recipe-id nodejs-npm-start
 ```
 
 Parse the NDJSON `plan_ready` event. On success (`status: ok` or `pending`),
@@ -264,7 +263,7 @@ manually when this command succeeds.
 
 ## Path B — Fallback: MCP tools (CLI unavailable)
 
-Use only these planning tools via the configured `network-solutions-deploy` MCP server:
+Use only these planning tools via the configured `network-solutions` MCP server:
 
 - `deployment_list_supported_runtimes`
 - `deployment_recommend_plan`

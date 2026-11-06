@@ -12,8 +12,8 @@ version: 1.2.12
 
 Use this Skill to restore a **Network Solutions** deployment to an exact prior
 known-good release on the same target. All business calls use canonical Network
-Solutions tools through the configured `network-solutions-deploy` server or
-`netsol-cli`.
+Solutions tools through `netsol-cli` or, when this session lists them, MCP
+deployment tools.
 
 This is a **destructive write**: it changes what is live. It always runs as two
 phases — preview the exact impact, then execute only after the user approves
@@ -48,41 +48,46 @@ Reach canonical capabilities in this **availability order**:
 
 1. **`netsol-cli`** (>=0.8.0) when local command execution is available and the
    project has Network Solutions state.
-2. **Configured `network-solutions-deploy` MCP connection** (public gateway tools).
+2. **MCP deployment tools** — only when this session actually lists the tools
+   this Skill names for the MCP path (for example `deployment_get_status`). The
+   plugin's bundled `network-solutions` server does not provide them, so without
+   the CLI this path is usually unavailable.
 3. **Trusted Network Solutions hosted continuation** when no local execution is
    available.
 
-Check the CLI before relying on it. Do not run a separate Node/npm version preflight before the bootstrap below. If `npm` or `npx` is unavailable, or `npx netsol version` / global CLI install fails because of Node or npm version limits, give Node.js LTS (>= 22.12) install guidance, stop, and wait until the user confirms Node/npm is fixed.
+Check the CLI before relying on it. Do not run a separate Node/npm version preflight before the bootstrap below. If `npm` is unavailable, or `netsol version` / the global CLI install fails because of Node or npm version limits, give Node.js LTS (>= 22.12) install guidance, stop, and wait until the user confirms Node/npm is fixed.
 
-**CLI bootstrap (strict order):** Run each step as a **separate** shell command — do not chain the version probe with repository scans, `command -v`, bare `netsol version`, or install.
+**CLI bootstrap (strict order):** Run each step as a **separate** shell command — do not chain the version probe with repository scans or install.
 
 1. Probe first:
 
 ```bash
-npx netsol version
+netsol version
 ```
 
-2. **Only if** step 1 fails because the CLI is not installed, install globally, then retry:
+2. **Only if** step 1 fails because `netsol` is not found, the CLI is not installed. Ask the user whether to install it globally from the official `@network-solutions/cli` package (or let them install it themselves). Only after they agree, run:
 
 ```bash
 npm i -g @network-solutions/cli
-npx netsol version
+netsol version
 ```
 
 (Alternatively: `pnpm add -g @network-solutions/cli` or `bun add -g @network-solutions/cli` when the user uses those package managers.)
 
-Do **not** run `npm i -g @network-solutions/cli` (or any install) until step 1 has been attempted. Do **not** use `command -v netsol` or bare `netsol version` **instead of** the first `npx netsol version` probe.
+If the user declines, treat the CLI as unavailable and use the next path in the availability order above.
 
-**CLI install anti-patterns:** Do not run `npm install --prefix` to `/tmp`, `/private/tmp`, or any side directory. Do not invoke `node_modules/.bin/netsol` by absolute path. Do not install before the `npx netsol version` probe.
+**Never run `npx netsol`.** The `netsol` command comes from the scoped package `@network-solutions/cli`; when the CLI is not installed, `npx netsol` would download the unrelated unscoped npm package named `netsol`. Always invoke the installed `netsol` command.
 
-Workflow steps in this skill use **`npx netsol …`**.
+**CLI install anti-patterns:** Do not run `npm install --prefix` to `/tmp`, `/private/tmp`, or any side directory. Do not invoke `node_modules/.bin/netsol` by absolute path. Do not install before the `netsol version` probe.
+
+Workflow steps in this skill use **`netsol …`**.
 
 Parse the `cli_version` event and require `data.cli_version` >= `0.8.0`. Older
-CLIs do not have `npx netsol rollback`; treat such a CLI as unavailable for the
+CLIs do not have `netsol rollback`; treat such a CLI as unavailable for the
 rollback steps and use the MCP path rather than improvising flags.
 
 If none of the three paths is available, or a required tool is missing, stop and
-tell the user to run `npm i -g @network-solutions/cli`, ensure `netsol` is on PATH, use `npx netsol`, or add the MCP server. Never perform or
+tell the user to install the CLI with `npm i -g @network-solutions/cli` (so `netsol` is on PATH). Never perform or
 suggest a manual rollback, raw SSH, or a private provider endpoint.
 
 ### Execution-path routing
@@ -93,19 +98,18 @@ would otherwise have to reimplement correctly by hand.
 
 | Step | Use | Why |
 | --- | --- | --- |
-| Identify current and destination releases | Either: `npx netsol deployment status` / `npx netsol deployment health`, or `deployment_get_status` / `deployment_get_health` | Read-only and equivalent |
-| Rollback preview | **`npx netsol rollback [path]`** (strongly preferred) | Performs no writes, re-reads both releases, enforces that both belong to the locally selected owned target, and emits the exact `rollback_arguments` with `operation_risk` and `rollback_fingerprint` |
-| Destructive execution | **`npx netsol rollback [path] --approve`** (strongly preferred) | Mints the parameter-bound approval, verifies the returned arguments match the preview, derives a deterministic idempotency key, and polls until the restored release is active and healthy |
+| Identify current and destination releases | Either: `netsol deployment status` / `netsol deployment health`, or `deployment_get_status` / `deployment_get_health` | Read-only and equivalent |
+| Rollback preview | **`netsol rollback [path]`** (strongly preferred) | Performs no writes, re-reads both releases, enforces that both belong to the locally selected owned target, and emits the exact `rollback_arguments` with `operation_risk` and `rollback_fingerprint` |
+| Destructive execution | **`netsol rollback [path] --approve`** (strongly preferred) | Mints the parameter-bound approval, verifies the returned arguments match the preview, derives a deterministic idempotency key, and polls until the restored release is active and healthy |
 | Rollback without local project state | `deployment_request_rollback_approval` then `deployment_rollback` | Narrow fallback; you own argument verification and key stability |
 
-`npx netsol rollback` is **project-scoped**: it reads `deployment_plan_id`,
+`netsol rollback` is **project-scoped**: it reads `deployment_plan_id`,
 `hosting_target_id`, and `environment` from
 `<project>/.networksolutions/netsol.config.json`. Without that state it stops with
 `VALIDATION_ERROR` — that is exactly when the direct MCP path applies. Do not
 fabricate local state to force the CLI path.
 
-Never call tools excluded from the compatibility baseline (see
-`netsol-cli/contracts/compatibility/README.md`).
+Call only the Network Solutions tools and commands named in this Skill.
 
 ## Authentication
 
@@ -115,20 +119,20 @@ scopes — not re-purchase hosting.
 
 ### Path A — CLI (`netsol-cli`)
 
-When the CLI is available, use **`npx netsol login`** only — never MCP server sign-in
+When the CLI is available, use **`netsol login`** only — never MCP server sign-in
 or MCP server authentication for this skill.
 
 1. **Check first, login only if needed**
    ```bash
-   npx netsol whoami
+   netsol whoami
    ```
    - If `whoami` succeeds (`authenticated: true`), continue — do **not** run
-     `npx netsol login` again.
+     `netsol login` again.
    - If exit 2 / `AUTHENTICATION_REQUIRED`, run login.
 
 2. **Login when required**
    ```bash
-   npx netsol login
+   netsol login
    ```
    - Emits `awaiting_user` with `data.verification_uri` (loopback PKCE when device
      grant is unavailable).
@@ -139,37 +143,34 @@ or MCP server authentication for this skill.
      to open in their **system browser** (Safari, Chrome, Firefox).
    - Tell the user: complete Network Solutions sign-in and consent, then reply
      **`continue`** (or **`done`**) in chat when finished.
-   - **Keep `npx netsol login` running** until `authenticated` is emitted — do not
+   - **Keep `netsol login` running** until `authenticated` is emitted — do not
      cancel, re-run login, or treat `pending` as failure.
    - If the user says **continue** before `authenticated` appears, acknowledge
      and keep waiting for the CLI event (do not start a second login).
-   - Re-run `npx netsol whoami` to confirm `customer_id`, `scopes`, and (when
+   - Re-run `netsol whoami` to confirm `customer_id`, `scopes`, and (when
      present) `grant_resources`.
 
 3. **Session persistence**
    - Credentials persist in `~/.netsol/`; access tokens auto-refresh on each CLI
      command.
    - Do **not** re-login before rollback unless `AUTHENTICATION_REQUIRED`,
-     `INVALID_TOKEN`, `SCOPE_DENIED`, or the user ran `npx netsol logout`.
+     `INVALID_TOKEN`, `SCOPE_DENIED`, or the user ran `netsol logout`.
    - Never ask for or handle raw passwords/API keys.
 
-4. **Production vs local dev**
-   - Production: `npx netsol login` only (never `--mock`).
-   - `--mock` is contributor-only; the skill must not suggest it for customer
-     workflows.
+4. **Sign-in method** — use `netsol login` only.
 
 ### Path B — MCP tools only
 
-Use only when the CLI is unavailable. If **`netsol version`** (or `npx netsol version`) succeeds, switch to
-Path A with **`npx netsol login`** — do not use MCP server sign-in.
+Use only when the CLI is unavailable. If **`netsol version`** succeeds, switch to
+Path A with **`netsol login`** — do not use MCP server sign-in.
 
 - Auth for MCP read/write steps comes from the IDE's MCP server connection — not
-  `npx netsol login`.
-- On `AUTHENTICATION_REQUIRED` while CLI is available: run **`npx netsol login`** and
+  `netsol login`.
+- On `AUTHENTICATION_REQUIRED` while CLI is available: run **`netsol login`** and
   retry via CLI — do **not** direct the user to MCP OAuth.
 - When CLI is truly missing and MCP tools return `AUTHENTICATION_REQUIRED`, tell
-  the user to authenticate the `network-solutions` MCP server in client settings,
-  or run `npm i -g @network-solutions/cli` and switch to Path A with `npx netsol`.
+  the user that this path needs the CLI: install it with
+  `npm i -g @network-solutions/cli` and switch to Path A with `netsol`.
 
 ---
 
@@ -181,8 +182,8 @@ human text on stderr only. Never echo secret values.
 ### A1. Confirm both releases
 
 ```bash
-npx netsol deployment status [deployment_id|path]
-npx netsol deployment health [deployment_id|path]
+netsol deployment status [deployment_id|path]
+netsol deployment health [deployment_id|path]
 ```
 
 Confirm the current active release and that the destination is a trusted
@@ -191,7 +192,7 @@ known-good release on the same target. Never guess a release id.
 ### A2. Preview the exact rollback
 
 ```bash
-npx netsol rollback [path]
+netsol rollback [path]
 ```
 
 This performs **no writes**. It re-reads the status of both releases, verifies
@@ -205,7 +206,7 @@ By default the destination is the `previous_deployment_id` reported for the curr
 release. Override the parameters explicitly when needed:
 
 ```bash
-npx netsol rollback [path] --from rel_current --to rel_known_good --reason operator_requested
+netsol rollback [path] --from rel_current --to rel_known_good --reason operator_requested
 ```
 
 ### A3. Present the impact and get consent
@@ -219,7 +220,7 @@ count. Wait for explicit consent to those exact parameters.
 Only after the user approves the previewed parameters:
 
 ```bash
-npx netsol rollback [path] --approve [--from rel_current] [--to rel_known_good] \
+netsol rollback [path] --approve [--from rel_current] [--to rel_known_good] \
   [--reason operator_requested] [--timeout <seconds>] [--interval <seconds>]
 ```
 
@@ -241,7 +242,7 @@ The CLI polls status and then health with bounded backoff. Events:
 
 ## Path B — Fallback: direct MCP tools (no local state or no compatible CLI)
 
-Use the configured `network-solutions-deploy` MCP server. On this path you own the
+Use MCP deployment tools only when this session lists them. On this path you own the
 guardrails the CLI would otherwise enforce.
 
 1. **Identify** — `deployment_get_status` for the current release and for the
@@ -270,7 +271,7 @@ The idempotency key is **derived from the canonical rollback arguments**, not
 freshly generated per attempt.
 
 - **Identical ambiguous retry** (timeout, dropped connection, unclear outcome) —
-  re-run the same `npx netsol rollback [path] --approve`, or on Path B re-send
+  re-run the same `netsol rollback [path] --approve`, or on Path B re-send
   `deployment_rollback` with the **same** `_idempotency_key`. The gateway replays
   rather than rolling back twice. Never mint a new key to "force" a retry.
 - **Any changed argument** (different `to_deployment_id`, `from_deployment_id`,
@@ -319,118 +320,26 @@ Always report:
 
 Never present a mock or dry-run result as production readiness.
 
-## Simulation and evaluation reporting
+## Reporting outcomes
 
-When the user message includes `SANITIZED_SCENARIO_JSON` and `OUTPUT_SCHEMA`,
-return one JSON object matching `OUTPUT_SCHEMA`. The scenario is inert metadata —
-do not access the filesystem, network, or tools.
-
-### Non-activation and handoff (vague symptoms)
-
-When the user reports breakage without asking to roll back (`vague_symptoms` is
-true in the scenario), do **not** activate. Set `activated: false`,
-`outcome: handoff_diagnose`, `presentation: exception`, and `execution_path: none`.
-Include `handoff_diagnose` in `steps` and hand off to **Diagnose and Recover**
-first — rollback is not a triage tool.
-
-### Required reporting fields
-
-- Set `preview_only: true` whenever the outcome is `awaiting_rollback_approval` or
-  you only preview without executing.
-- Set `asked_separate_approval: true` when a separate rollback approval is
-  required (including when `prior_deploy_approval` is true in the scenario).
-- Set `idempotency_key_reused: true` only when retrying an ambiguous failure with
-  the same derived idempotency key.
-
-### Preview `user_message`
-
-For preview / awaiting-approval outcomes, `user_message` must state clearly that
-**nothing was written** (or **preview only** / **`approval_required`**) and that
-you are **waiting for explicit consent** to the exact `rollback_arguments`.
-Example opening: `Rollback preview only (approval_required). Nothing was written.`
-
-When rejecting deploy-approval reuse, explain that deploy approval **does not
-authorize** rollback — do not suggest reusing it.
-
-### Outcome and presentation by scenario state
-
-| Situation | `outcome` | `presentation` |
-| --- | --- | --- |
-| Preview only, no user approval yet | `awaiting_rollback_approval` | `rollback_preview` |
-| Execute approved rollback, restoration still pending (`rollback_state` null/pending) | `rollback_pending` | `rollback_result` |
-| Restored release active + health passing | `rollback_completed` | `rollback_result` |
-| Restored release active + health failing | `rollback_unhealthy` | `exception` |
-| Provider retryable error after approved execute | `canonical_error` | `exception` |
-| Cross-target or invalid args | `validation_error` | `exception` |
-
-Read `scenario.rollback_state`, `scenario.rollback_health`, `scenario.ambiguous_retry`,
-and `scenario.provider_error` from `SANITIZED_SCENARIO_JSON`:
-
-- `ambiguous_retry` is true **and** `provider_error` is set (e.g.
-  `PROVIDER_TIMEOUT`) → the identical retry with `prior_idempotency_key` still
-  fails with that canonical error. Use `outcome: canonical_error`,
-  `presentation: exception`, `idempotency_key_reused: true`, include
-  `reuse_idempotency` in `steps`, and lead `user_message` with the literal
-  `provider_error` code. Do **not** use `rollback_pending` or
-  `rollback_completed` — the retry did not succeed.
-- `rollback_state` is `null` or `pending` after execute **and** there is no
-  `provider_error` on an ambiguous retry → `outcome: rollback_pending`
-  (restoration queued; do not claim success).
-- `rollback_state` is `active` and `rollback_health` is `passing` → `outcome:
-  rollback_completed`.
-- `rollback_state` is `active` and `rollback_health` is `failing` → `outcome:
-  rollback_unhealthy` with `presentation: exception` (not `rollback_result`).
-
-Never report `rollback_completed` unless scenario `rollback_state` is `active`
-and `rollback_health` is `passing`.
-
-### `needs_setup` (no canonical path)
-
-When `scenario.available_paths` is empty, set `outcome: needs_setup`,
-`presentation: setup`, and `execution_path: none`. Include only
-`provide_setup_guidance` in `steps` — **no** `check_cli_version`, **no**
-`commands`, and **no** `tool_calls` (nothing can run). `user_message` must name
-both **`netsol-cli`** and the **`network-solutions-deploy` MCP** connection and
-tell the user to install or configure one before rollback.
-
-### `approval_mismatch` (minted args differ from preview)
-
-When `scenario.minted_approval_mismatch` is true or `scenario.approval_match`
-is false after the user approved, stop before any rollback write. Set
-`outcome: approval_mismatch` and `presentation: exception`. Do **not** include
-`rollback_execute`, `npx netsol rollback --approve`, or `deployment_rollback`.
-Lead `user_message` with **`APPROVAL_INVALID:`** and state the minted
-`rollback_arguments` do not match the preview.
-
-### Ambiguous retry with provider error
-
-When `scenario.ambiguous_retry` is true and `scenario.provider_error` is set,
-re-run the same approved rollback with the same derived idempotency key
-(`scenario.prior_idempotency_key`). The gateway replays rather than rolling back
-twice, but this simulation still ends in the canonical provider error — not a
-pending or successful restoration. Set `outcome: canonical_error`,
-`presentation: exception`, `idempotency_key_reused: true`, and include
-`reuse_idempotency` before `rollback_execute` in `steps`. `user_message` must
-include the literal `scenario.provider_error` string (for example
-`PROVIDER_TIMEOUT`) and advise retrying the identical call with the same key.
-
-### `rollback_unhealthy` (active but health failing)
-
-When `scenario.rollback_health` is `failing`, use `outcome: rollback_unhealthy`
-and **`presentation: exception`** — never `rollback_result`. Include
-`handoff_diagnose` in `steps` and mention that health is failing and Diagnose and
-Recover should take over. Do not report rollback success — avoid phrasing like
-"rollback completed" even when describing an active-but-unhealthy release; say
-the release is active but health is failing and this is **not** a successful
-rollback. Do **not** put `workflow_id` or `correlation_id` in `user_message` for
-this exception outcome.
-
-### CLI commands in simulation JSON
-
-Prefer full command strings with flags, e.g.
-`npx netsol rollback . --approve --from dep_current --to dep_previous`.
-Structured `arguments.approve: true` on a `npx netsol rollback` command is also
-acceptable for approved execution.
+- **Preview:** say clearly that nothing was written and that you are waiting for
+  explicit consent to the exact `rollback_arguments`. A deploy approval does not
+  authorize a rollback — never suggest reusing one.
+- **Pending:** when the restored release is not yet active, report that the
+  rollback is pending; do not claim success.
+- **Success:** report success only when the restored release is `active` and
+  health is passing.
+- **Active but unhealthy:** say the release is active but health is failing and
+  that this is **not** a successful rollback, then hand off to **Diagnose and
+  Recover**.
+- **Approval mismatch:** when the minted arguments differ from the preview, stop
+  before any rollback write and lead with **`APPROVAL_INVALID:`**.
+- **Retry still failing:** when an identical retry with the same idempotency key
+  still returns a provider error, lead with the literal error code (for example
+  `PROVIDER_TIMEOUT`) and advise retrying the identical call with the same key.
+- **No way to run:** when neither `netsol-cli` nor MCP deployment tools are
+  available, tell the user to install the CLI with
+  `npm i -g @network-solutions/cli` before rollback.
 
 ## Hard boundaries
 

@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "network-solutions-headless-toolkit": {
+    "network-solutions": {
       "type": "http",
       "url": "https://gateway.mcp.networksolutions.com/mcp",
       "headers": {

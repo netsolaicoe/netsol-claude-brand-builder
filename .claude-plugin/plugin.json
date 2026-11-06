@@ -1,8 +1,8 @@
 {
   "name": "network-solutions",
   "displayName": "Network Solutions",
-  "version": "0.2.0",
-  "description": "Plan and deploy supported applications through the governed Network Solutions MCP gateway.",
+  "version": "0.2.1",
+  "description": "Build a business brand with Network Solutions (names, domain search, logos, and websites) and plan, deploy, diagnose, and roll back apps on Network Solutions hosting.",
   "author": {
     "name": "Network Solutions"
   },
